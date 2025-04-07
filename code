@@ -1,0 +1,76 @@
+
+#### **Example Verilog Code**
+```verilog
+module lifo_stack #(
+    parameter WIDTH = 8,
+    parameter DEPTH = 8,
+    parameter ADDR_WIDTH = 3
+)(
+    input clk, rst,
+    input push, pop,
+    input [WIDTH-1:0] din,
+    output reg [WIDTH-1:0] dout,
+    output full, empty
+);
+    reg [WIDTH-1:0] stack [0:DEPTH-1];
+    reg [ADDR_WIDTH:0] sp;
+
+    assign full = (sp == DEPTH);
+    assign empty = (sp == 0);
+
+    always @(posedge clk or posedge rst) begin
+        if (rst)
+            sp <= 0;
+        else begin
+            if (push && !full) begin
+                stack[sp] <= din;
+                sp <= sp + 1;
+            end else if (pop && !empty) begin
+                sp <= sp - 1;
+                dout <= stack[sp - 1];
+            end
+        end
+    end
+endmodule
+```
+
+#### **Testbench**
+```verilog
+module tb_lifo_stack;
+    reg clk = 0, rst = 0;
+    reg push, pop;
+    reg [7:0] din;
+    wire [7:0] dout;
+    wire full, empty;
+
+    lifo_stack uut (.clk(clk), .rst(rst), .push(push), .pop(pop), .din(din), .dout(dout), .full(full), .empty(empty));
+
+    always #5 clk = ~clk;
+
+    initial begin
+        $monitor("Time=%0d push=%b pop=%b din=%h dout=%h full=%b empty=%b", $time, push, pop, din, dout, full, empty);
+        rst = 1; #10; rst = 0;
+
+        // Push data
+        push = 1; pop = 0; din = 8'h11; #10;
+        din = 8'h22; #10;
+        din = 8'h33; #10;
+        push = 0;
+
+        // Pop data
+        pop = 1; #10;
+        #10;
+        pop = 0;
+
+        $finish;
+    end
+endmodule
+```
+
+#### **Expected Output**
+```
+Time=10 push=1 pop=0 din=11 dout=xx full=0 empty=0  
+Time=20 push=1 pop=0 din=22 dout=xx full=0 empty=0  
+Time=30 push=1 pop=0 din=33 dout=xx full=0 empty=0  
+Time=40 push=0 pop=1 din=33 dout=33 full=0 empty=0  
+Time=50 push=0 pop=1 din=33 dout=22 full=0 empty=0  
